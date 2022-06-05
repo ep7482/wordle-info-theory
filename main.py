@@ -22,6 +22,13 @@ class wordle_game:
             self.letter_locs.append(temp)
 
         self.word_matrix = [['' for i in range(self.square_num//6)] for j in range(self.square_num//5)]
+        self.word = []
+        self.word_row = 0
+
+        self.wordlist_matrix = []
+        with open('wordlist.txt') as file:
+            self.wordlist_matrix = file.readlines()
+            self.wordlist_matrix = [list(item.rstrip().upper()) for item in self.wordlist_matrix]
 
     def add_letter(self, letter, location):
         text1 = self.box_font.render(letter, True, (0, 0, 0))
@@ -29,25 +36,42 @@ class wordle_game:
         textRect1.center = location
         self.screen.blit(text1, textRect1)
 
+    def update_display(self):
+        for x in range(len(self.word_matrix)):
+            for y in range(len(self.word_matrix[x])):
+                loc = self.letter_locs[x][y]
+                self.add_letter(self.word_matrix[x][y], loc)
+
     def run(self):
         pygame.init()
         self.screen = pygame.display.set_mode((self.display_pixel_num, self.display_pixel_num))
 
         while self.running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                    self.close()
-                if event.type == pygame.KEYDOWN:
-                    print(event.unicode.upper())
-            
             self.screen.fill((255, 255, 255))
 
             for i in range(self.square_num//5):
                 for j in range(self.square_num//6):
                     pygame.draw.rect(self.screen, (0, 0, 0), (self.margin + self.box_dim * (j + 1) + 5 * j, 
-                                                              self.box_dim * (i + 1) + 5 * i, self.box_dim, self.box_dim), width = 2)
-                    
+                                                              self.box_dim * (i + 1) + 5 * i, self.box_dim, self.box_dim), width = 2)  
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    self.close()
+                if event.type == pygame.KEYDOWN:
+                    if event.unicode.upper() in self.letters and len(self.word) < 5 and self.word_row < 6:
+                        self.word.append(event.unicode.upper())
+                        self.word_matrix[self.word_row] = self.word
+                        
+                        if len(self.word) == 5 and self.word in self.wordlist_matrix:
+                            self.word = []
+                            self.word_row += 1
+                    if event.key == pygame.K_BACKSPACE:
+                        self.word = self.word[:-1]
+                        self.word_matrix[self.word_row] = self.word
+
+                    # print(event.unicode.upper(), self.word, self.word_matrix)
+            
+            self.update_display()
             pygame.display.flip()
 
 
