@@ -1,3 +1,5 @@
+import enum
+from struct import Struct
 import pygame
 import random
 
@@ -10,42 +12,70 @@ class wordle_game:
         self.display_pixel_num = 600
         self.box_dim = 50
         self.spacing = 6
-        self.margin = int((550 - (50 * self.spacing + self.spacing * 4)) / 2)
-        self.letters = [chr(i) for i in range(65, 91)]
-        self.box_font = pygame.font.SysFont('arial', 24)
-        self.key_font = pygame.font.SysFont('Verdana', 24)
-        self.enter_size = pygame.font.SysFont('arial', 20)
-        self.del_size = pygame.font.SysFont('arial', 20)
-        self.letter_locs = []
-        self.word_matrix = [['' for i in range(self.square_num//6)] for j in range(self.square_num//5)]
-        self.word = []
         self.word_row = 0
+        self.enter_key_loc = (0, 0)
+        self.backspace_key_loc = (0, 0)
+
+        self.letter_locs = []
+        self.word = []
         self.wordlist_matrix = []
         self.wordlist = []
-        self.tile_matrix = [[((58, 58, 60), 2) for i in range(self.square_num//6)] for j in range(self.square_num//5)]
         self.first_key_row_locs = []
         self.second_key_row_locs = []
         self.third_key_row_locs = []
-        self.enter_key_loc = (0, 0)
-        self.backspace_key_loc = (0, 0)
-        self.first_key_row  = ['Q','W','E','R','T','Y','U','I','O','P']
-        self.second_key_row = ['A','S','D','F','G','H','J','K','L']
-        self.third_key_row  = ['Z','X','C','V','B','N','M']
-        self.enter_key = 'ENTER'
-        self.backspace_key = 'DELETE'
+
         self.first_key_dict = {}
         self.second_key_dict = {}
         self.third_key_dict = {}
+        self.key_dict = {}
+
+        self.margin = int((550 - (50 * self.spacing + self.spacing * 4)) / 2)
+        self.letters = [chr(i) for i in range(65, 91)]
+        self.box_font = pygame.font.SysFont('arial', 24)
+        self.key_font = pygame.font.SysFont('Helvetica', 48)
+        self.enter_size = pygame.font.SysFont('arial', 20)
+        self.del_size = pygame.font.SysFont('arial', 20)
+        
+        self.word_matrix = [['' for i in range(self.square_num//6)] for j in range(self.square_num//5)]
+        self.tile_matrix = [[((58, 58, 60), 2) for i in range(self.square_num//6)] for j in range(self.square_num//5)]
+
+        self.enter_key = 'ENTER'
+        self.backspace_key = 'DELETE'
+
+        self.keyboard = [['Q','W','E','R','T','Y','U','I','O','P'],
+                         ['A','S','D','F','G','H','J','K','L'],
+                         ['Z','X','C','V','B','N','M'],
+                         ['ENTER'],['DELETE']]
+        
 
         self.LIGHT_GRAY = (134, 136, 138)
+        self.GREEN = (77, 149, 70)
+        self.YELLOW = (181, 159, 59)
+        self.DARK_GRAY = (58, 58, 60)
 
     def init_keyboard(self):
-        for i in range(10):
-            self.first_key_dict[self.first_key_row[i]] = self.LIGHT_GRAY
-        for i in range(9):
-            self.second_key_dict[self.second_key_row[i]] = self.LIGHT_GRAY
-        for i in range(7):
-            self.third_key_dict[self.third_key_row[i]] = self.LIGHT_GRAY
+        start_key_y = 343 + self.box_dim
+        for i in self.keyboard:
+            for index, value in enumerate(i):
+                
+                self.key_dict[value] = {}
+                self.key_dict[value]["Color"] = self.LIGHT_GRAY
+
+                if self.keyboard.index(i) == 0:
+                    self.key_dict[value]["Loc"] = (21 + 60 + 43 * index + self.spacing * index, 6 + start_key_y + self.box_dim//2)
+                    self.key_dict[value]["Rect"] = (60 + 43 * index + self.spacing * index, start_key_y, 43, self.box_dim + 10)
+                elif self.keyboard.index(i) == 1:
+                    self.key_dict[value]["Loc"] = (21 + 83 + 43 * index + self.spacing * index, 6 + self.box_dim//2 + start_key_y + self.spacing + self.box_dim + 12)
+                    self.key_dict[value]["Rect"] = (83 + 43 * index + self.spacing * index, start_key_y + self.spacing + self.box_dim + 12, 43, self.box_dim + 10)
+                elif self.keyboard.index(i) == 2:
+                    self.key_dict[value]["Loc"] = (21 + 83 + 43 + self.spacing + 43 * index + self.spacing * index, 6 + self.box_dim//2 + start_key_y + 2 * (self.spacing + self.box_dim + 12))
+                    self.key_dict[value]["Rect"] = (83 + 43 + self.spacing + 43 * index + self.spacing * index, start_key_y + 2 * (self.spacing + self.box_dim + 12), 43, self.box_dim + 10)
+                elif self.keyboard.index(i) == 3:
+                    self.key_dict[value]["Loc"] = (93, start_key_y + 2 * (self.spacing + self.box_dim + 12) + 6 + self.box_dim//2)
+                    self.key_dict[value]["Rect"] = (60, start_key_y + 2 * (self.spacing + self.box_dim + 12), 66, self.box_dim + 10)
+                else:
+                    self.key_dict[value]["Loc"] = (508, start_key_y + 2 * (self.spacing + self.box_dim + 12) + 4 + self.box_dim//2)
+                    self.key_dict[value]["Rect"] = (475, start_key_y + 2 * (self.spacing + self.box_dim + 12), 66, self.box_dim + 10)
         
         
     def init_wordlist_matrix(self):
@@ -55,23 +85,13 @@ class wordle_game:
             self.wordlist_matrix = [list(item.rstrip().upper()) for item in self.wordlist_matrix]
 
     def init_letter_locs(self):
+        #Wordle Grid Location
         for i in range(self.square_num//5):
             temp = []
             for j in range(self.square_num//6):
                 temp.append((self.box_dim//2 + self.margin + self.box_dim * (j + 1) + self.spacing * j,
                              self.box_dim//2 + self.box_dim * (i + 1) + self.spacing* i))
             self.letter_locs.append(temp)
-
-        start_key_y = 343 + self.box_dim
-        for i in range(10):
-            self.first_key_row_locs.append((21 + 60 + 43*i + self.spacing * i, 6 + start_key_y + self.box_dim//2))
-        for i in range(9):
-            self.second_key_row_locs.append((21 + 83 + 43*i + self.spacing * i, 6 + self.box_dim//2 + start_key_y + self.spacing + self.box_dim + 12))
-        for i in range(7):
-            self.third_key_row_locs.append((21 + 83 + 43 + self.spacing + 43*i + self.spacing * i, 6 + self.box_dim//2 + start_key_y + 2 * (self.spacing + self.box_dim + 12)))
-
-        self.enter_key_loc = (93, start_key_y + 2 * (self.spacing + self.box_dim + 12) + 6 + self.box_dim//2)
-        self.backspace_key_loc = (508, start_key_y + 2 * (self.spacing + self.box_dim + 12) + 4 + self.box_dim//2)
 
     def add_letter(self, letter, location):
         if letter is self.enter_key:
@@ -85,39 +105,30 @@ class wordle_game:
         self.screen.blit(text1, textRect1)
 
     def update_display(self):
+        #Updating wordle grid
         for x in range(len(self.word_matrix)):
             for y in range(len(self.word_matrix[x])):
                 loc = self.letter_locs[x][y]
                 self.add_letter(self.word_matrix[x][y], loc)
 
-        for x in range(10):
-            self.add_letter(self.first_key_row[x], self.first_key_row_locs[x])
-            if x < 9:
-                self.add_letter(self.second_key_row[x], self.second_key_row_locs[x])
-            if x < 7:
-                self.add_letter(self.third_key_row[x], self.third_key_row_locs[x])
-
-        self.add_letter(self.enter_key, self.enter_key_loc)
-        self.add_letter(self.backspace_key, self.backspace_key_loc)
+        #Updating keyboard grid
+        for key in self.key_dict.keys():
+            loc = self.key_dict[key]["Loc"]
+            self.add_letter(key, loc)
 
     def current_screen(self):
+        #Draw wordle grid
         for i in range(self.square_num//5):
                 for j in range(self.square_num//6):
                     pygame.draw.rect(self.screen, self.tile_matrix[i][j][0], (self.margin + self.box_dim * (j + 1) + self.spacing * j, 
-                                                              self.box_dim * (i + 1) + self.spacing * i, self.box_dim, self.box_dim), self.tile_matrix[i][j][1]) 
-                    # print(self.box_dim * (i + 1) + self.spacing * i)   
-        start_key_y =  343 + self.box_dim                                                 
-        for i in range(10):           
-            pygame.draw.rect(self.screen, self.first_key_dict.get(self.first_key_row[i]) , (60 + 43*i + self.spacing * i, start_key_y, 43, self.box_dim + 10), border_radius = 4)
-        
-        for i in range(9):
-            pygame.draw.rect(self.screen, self.second_key_dict.get(self.second_key_row[i]), (83 + 43*i + self.spacing * i, start_key_y + self.spacing + self.box_dim + 12, 43, self.box_dim + 10), border_radius = 4)
-        
-        for i in range(7):
-            pygame.draw.rect(self.screen, self.third_key_dict.get(self.third_key_row[i]) , (83 + 43 + self.spacing + 43*i + self.spacing * i, start_key_y + 2 * (self.spacing + self.box_dim + 12), 43, self.box_dim + 10), border_radius = 4)
+                                                              self.box_dim * (i + 1) + self.spacing * i, self.box_dim, self.box_dim), self.tile_matrix[i][j][1])  
+        start_key_y =  343 + self.box_dim    
 
-        pygame.draw.rect(self.screen, (134, 136, 138) , (60, start_key_y + 2 * (self.spacing + self.box_dim + 12), 66, self.box_dim + 10), border_radius = 4)
-        pygame.draw.rect(self.screen, (134, 136, 138) , (475, start_key_y + 2 * (self.spacing + self.box_dim + 12), 66, self.box_dim + 10), border_radius = 4)
+        #Draw keyboard keys
+        for key in self.key_dict.keys():
+            rect = self.key_dict[key].get("Rect")
+            color = self.key_dict[key].get("Color")
+            pygame.draw.rect(self.screen, color, rect, border_radius=4)
 
 
     def run(self):
@@ -129,12 +140,17 @@ class wordle_game:
         self.init_keyboard()
         self.word_of_day = list(random.choice(self.wordlist))
 
-        # print(self.tile_matrix)
         print(self.word_of_day)
 
         while self.running:
-            self.screen.fill((0, 0, 0))
+            self.screen.fill((18, 18, 19))
             self.current_screen()
+
+            
+            wordle_image = pygame.image.load(r'wordleimage.png')
+            w, h = wordle_image.get_size()
+            wordle_image = pygame.transform.scale(wordle_image, (w//3, h//3))
+            self.screen.blit(wordle_image, (220, 8))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -147,24 +163,33 @@ class wordle_game:
                         
                     if len(self.word) == 5 and self.word in self.wordlist_matrix and event.key == pygame.K_RETURN:
                         for l in range(5):
+                            #letter in same position
                             if self.word[l] == self.word_of_day[l]:
-                                self.tile_matrix[self.word_row][l] = ((77, 149, 70), 0)
+                                self.tile_matrix[self.word_row][l] = (self.GREEN, 0)
+                                if self.word[l] in self.key_dict.keys():
+                                    self.key_dict[self.word[l]]["Color"] = self.GREEN
+
+                            #letter in word but different position
                             elif self.word[l] in self.word_of_day and self.word[l] != self.word_of_day[l]:
-                                self.tile_matrix[self.word_row][l] = ((181, 159, 59), 0)
+                                self.tile_matrix[self.word_row][l] = (self.YELLOW, 0)
+                                if self.word[l] in self.key_dict.keys():
+                                    self.key_dict[self.word[l]]["Color"] = self.YELLOW
+
+                            #letter not in word
                             elif self.word[l] not in self.word_of_day and self.word[l] != self.word_of_day[l]:
-                                self.tile_matrix[self.word_row][l] = ((58, 58, 60), 0)
+                                self.letters.remove(self.word[l])
+                                self.tile_matrix[self.word_row][l] = (self.DARK_GRAY, 0)
+                                if self.word[l] in self.key_dict.keys():
+                                    self.key_dict[self.word[l]]["Color"] = self.DARK_GRAY
                         self.word = []
                         self.word_row += 1
 
                     if event.key == pygame.K_BACKSPACE:
                         self.word = self.word[:-1]
                         self.word_matrix[self.word_row] = self.word
-
-                    # print(event.unicode.upper(), self.word, self.word_matrix)
             
             self.update_display()
             pygame.display.flip()
-
 
 
     def close(self):
