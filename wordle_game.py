@@ -43,7 +43,7 @@ class wordle_game:
     
     pygame.font.init()
     square_num = 30
-    display_pixel_num = 600
+    display_pixel_num = 1000
     box_dim = 50
     spacing = 6
     word_row = 0
@@ -55,7 +55,7 @@ class wordle_game:
     letters = [chr(i) for i in range(65, 91)]
 
     box_font = pygame.font.SysFont('arial', 24)
-    key_font = pygame.font.SysFont('Helvetica', 48)
+    key_font = pygame.font.SysFont('Helvetica', 26)
     enter_size = pygame.font.SysFont('arial', 20)
     del_size = pygame.font.SysFont('arial', 20)
 
@@ -84,6 +84,12 @@ class wordle_game:
         self.wordlist = []
         self.key_dict = {}
         self.guesses = []
+
+        self.uncertainty = 13.66
+        self.num_guesses = 12972
+
+        self.top_guesses = ['TESTS' for i in range(5)]
+        self.top_entropy = [0.00 for i in range(5)]
 
         self.word_matrix = [['' for i in range(self.square_num//6)] for j in range(self.square_num//5)]
         self.tile_matrix = [[((58, 58, 60), 2) for i in range(self.square_num//6)] for j in range(self.square_num//5)]
@@ -131,7 +137,7 @@ class wordle_game:
         examples -> ['ABACK', 'ABASE', 'ABATE', ...]
                     [['A', 'B', 'A', 'C', 'K'], ['A', 'B', 'A', 'S', 'E'], ['A', 'B', 'A', 'T', 'E'], ...]
         """
-        with open('wordlist.txt') as file:
+        with open('data/guess_wordlelist.txt') as file:
             self.wordlist_matrix = file.readlines()
             self.wordlist = [item.rstrip().upper() for item in self.wordlist_matrix]
             self.wordlist_matrix = [list(item.rstrip().upper()) for item in self.wordlist_matrix]
@@ -168,6 +174,12 @@ class wordle_game:
         textRect1.center = location
         self.screen.blit(text1, textRect1)
 
+    def add_text(self, text, location, color):
+        text = self.key_font.render(text, True, color)
+        textRect = text.get_rect()
+        textRect.center = location
+        self.screen.blit(text, textRect)
+
     def update_display(self):
         """
         Updates the wordle grid display and keyboard display. Any changes to the attributes (ex. color) of each
@@ -183,6 +195,13 @@ class wordle_game:
         for key in self.key_dict.keys():
             loc = self.key_dict[key]["Loc"]
             self.add_letter(key, loc)
+
+        self.add_text(str(self.num_guesses), (740, 90), self.GREEN)
+        self.add_text(str(self.uncertainty), (740, 160), self.GREEN)
+
+        for i in range(len(self.top_guesses)):
+            word = self.top_guesses[i]
+            self.add_text(word, (655, 230 + 30 * i), (255, 255, 255))
 
 
 
@@ -204,13 +223,19 @@ class wordle_game:
             color = self.key_dict[key].get("Color")
             pygame.draw.rect(self.screen, color, rect, border_radius=4)
 
+        color = (255, 255, 255) 
+        self.add_text("Number of Possible Guesses", (740, 60), color)
+        self.add_text("Uncertainty (Bits) ", (740, 130), color)
+        self.add_text("Top Guess Picks", (650, 200), color)
+        self.add_text("Expected Information", (850, 200), color)
+
 
     def run(self):
         """ 
         
         """
         pygame.init()
-        self.screen = pygame.display.set_mode((self.display_pixel_num, self.display_pixel_num))
+        self.screen = pygame.display.set_mode((self.display_pixel_num, 600))
         
         self.init_wordlist_matrix()
         self.init_letter_locs()
