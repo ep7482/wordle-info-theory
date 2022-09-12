@@ -22,10 +22,6 @@ def information_bits(prob):
         return 0
     return np.log2(1 / prob)
 
-# info_bits_slate = 5.871215373158402
-# print(np.log2(len(guess_words)) - info_bits_slate)
-# print(len(guess_words))
-
 def probability(count, word_space_len):
     return count / word_space_len
 
@@ -55,6 +51,11 @@ def entropy_progress(count, words):
         print("Entropy Calculation Completion: ", round((100 * count) / (len(words))), "%", end='\r')
 
 def word_space(guess, sol, guess_space):
+
+    if len(guess_space) == 2 and guess in guess_space:
+        guess_space.remove(guess)
+        return guess_space
+
     guess_pattern = compare_words(guess, sol)[1]
 
     new_space = []
@@ -102,7 +103,3 @@ def entropy_cal(sol_words, guess_words):
     entropy_dict = dict(sorted(entropy_dict.items(), key = lambda item : item[1], reverse =True))
 
     return entropy_dict
-
-
-                
-

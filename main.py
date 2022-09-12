@@ -13,8 +13,9 @@ with open('data/guess_wordlelist.txt') as file:
 if __name__ == '__main__':
 
     #Create and run game
-    game = wordle_game.wordle_game()
+    game = wordle_game.wordle_game(wordle_words=wordle_words, guess_words=guess_words)
     game.run()
+    
 
     # words = bot.word_space("SLATE","ABYSS", guess_words)
     # entropy = bot.entropy_cal(guess_words, words)

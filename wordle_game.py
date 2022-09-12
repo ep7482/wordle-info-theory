@@ -1,7 +1,7 @@
-import enum
-from struct import Struct
 import pygame
 import random
+import wordle_bot as bot
+import numpy as np
 
 class wordle_game:
     """
@@ -55,7 +55,7 @@ class wordle_game:
     letters = [chr(i) for i in range(65, 91)]
 
     box_font = pygame.font.SysFont('arial', 24)
-    key_font = pygame.font.SysFont('Helvetica', 26)
+    key_font = pygame.font.SysFont('arial', 26)
     enter_size = pygame.font.SysFont('arial', 20)
     del_size = pygame.font.SysFont('arial', 20)
 
@@ -70,7 +70,7 @@ class wordle_game:
                     ['ENTER'],['DELETE']]
     
     
-    def __init__(self, Terminal = False):
+    def __init__(self, guess_words, wordle_words, Terminal = False):
         """
         Parameters
         ----------
@@ -84,12 +84,18 @@ class wordle_game:
         self.wordlist = []
         self.key_dict = {}
         self.guesses = []
+        self.current_guess = ''
+
+        self.guess_words = guess_words
+        self.wordle_words= wordle_words
 
         self.uncertainty = 13.66
         self.num_guesses = 12972
 
         self.top_guesses = ['TESTS' for i in range(5)]
         self.top_entropy = [0.00 for i in range(5)]
+        self.history_guesses = ['---' for i in range(6)]
+        self.history_entropy = [0.00 for i in range(6)]
 
         self.word_matrix = [['' for i in range(self.square_num//6)] for j in range(self.square_num//5)]
         self.tile_matrix = [[((58, 58, 60), 2) for i in range(self.square_num//6)] for j in range(self.square_num//5)]
@@ -196,13 +202,17 @@ class wordle_game:
             loc = self.key_dict[key]["Loc"]
             self.add_letter(key, loc)
 
-        self.add_text(str(self.num_guesses), (740, 90), self.GREEN)
-        self.add_text(str(self.uncertainty), (740, 160), self.GREEN)
+        
+        for word in self.word_matrix:
+            index = self.word_matrix.index(word)
+            self.history_guesses[index] = ''.join(word)
+            # self.history_entropy[index] = self.uncertainty
+            if ''.join(word) == '':
+                self.history_guesses[index] = '---'
 
-        for i in range(len(self.top_guesses)):
-            word = self.top_guesses[i]
-            self.add_text(word, (655, 230 + 30 * i), (255, 255, 255))
-
+        
+        self.add_text(str(self.num_guesses), (740, 80), self.GREEN)
+        self.add_text(str(self.uncertainty), (740, 150), self.GREEN)
 
 
     def current_screen(self):
@@ -224,10 +234,23 @@ class wordle_game:
             pygame.draw.rect(self.screen, color, rect, border_radius=4)
 
         color = (255, 255, 255) 
-        self.add_text("Number of Possible Guesses", (740, 60), color)
-        self.add_text("Uncertainty (Bits) ", (740, 130), color)
-        self.add_text("Top Guess Picks", (650, 200), color)
-        self.add_text("Expected Information", (850, 200), color)
+        self.add_text("Number of Possible Guesses", (740, 50), color)
+        self.add_text("Uncertainty (Bits) ", (740, 120), color)
+        self.add_text("Top Guess Picks", (650, 190), color)
+        self.add_text("Expected Information", (850, 190), color)
+        self.add_text("Game History", (750, 385), color)
+
+        for i in range(len(self.top_guesses)):
+            word = self.top_guesses[i]
+            entropy = str(self.top_entropy[i])
+            self.add_text(word, (655, 220 + 30 * i), self.LIGHT_GRAY)
+            self.add_text(entropy, (850, 220 + 30 * i), self.LIGHT_GRAY)
+        
+        for j in range(len(self.history_guesses)):
+            his_guess = self.history_guesses[j]
+            his_entropy = str(self.history_entropy[j])
+            self.add_text(his_guess, (655, 420 + 29 * j), self.LIGHT_GRAY)
+            self.add_text(his_entropy, (850, 420 + 29 * j), self.LIGHT_GRAY)
 
 
     def run(self):
@@ -240,7 +263,10 @@ class wordle_game:
         self.init_wordlist_matrix()
         self.init_letter_locs()
         self.init_keyboard()
-        self.word_of_day = list(random.choice(self.wordlist))
+        # self.word_of_day = list(random.choice(self.wordlist))
+        self.word_of_day = "ABYSS"
+
+        sol = ''.join(self.word_of_day)
 
         print(self.word_of_day)
 
@@ -254,44 +280,60 @@ class wordle_game:
             wordle_image = pygame.transform.scale(wordle_image, (w//3, h//3))
             self.screen.blit(wordle_image, (220, 8))
 
+            
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
                     self.close()
+
                 if event.type == pygame.KEYDOWN:
                     if event.unicode.upper() in self.letters and len(self.word) < 5 and self.word_row < 6:
                         self.word.append(event.unicode.upper())
                         self.word_matrix[self.word_row] = self.word
                         
                     if len(self.word) == 5 and self.word in self.wordlist_matrix and event.key == pygame.K_RETURN:
+
+                        self.current_guess = ''.join(self.word)
+                        word_space = bot.word_space(self.current_guess, sol, self.guess_words)
+                        self.guess_words = word_space
+                        self.num_guesses = len(word_space)
+                        self.history_entropy[self.word_matrix.index(self.word)] = round(self.uncertainty - np.log2(self.num_guesses), 2)
+                        self.uncertainty = round(np.log2(self.num_guesses), 2)
+                        
+                        word_pattern = bot.compare_words(self.current_guess, sol)[1]
+
+                        
+
                         for l in range(5):
                             #letter in same position
-                            if self.word[l] == self.word_of_day[l]:
+                            if word_pattern[l] == 2:
                                 self.tile_matrix[self.word_row][l] = (self.GREEN, 0)
                                 if self.word[l] in self.key_dict.keys():
                                     self.key_dict[self.word[l]]["Color"] = self.GREEN
 
                             #letter in word but different position
-                            elif self.word[l] in self.word_of_day and self.word[l] != self.word_of_day[l]:
+                            elif word_pattern[l] == 1:
+    
                                 self.tile_matrix[self.word_row][l] = (self.YELLOW, 0)
                                 if self.word[l] in self.key_dict.keys():
                                     self.key_dict[self.word[l]]["Color"] = self.YELLOW
 
                             #letter not in word
-                            elif self.word[l] not in self.word_of_day and self.word[l] != self.word_of_day[l]:
+                            elif word_pattern[l] == 0:
                                 self.tile_matrix[self.word_row][l] = (self.DARK_GRAY, 0)
                                 if self.word[l] in self.key_dict.keys():
                                     self.key_dict[self.word[l]]["Color"] = self.DARK_GRAY
+
                         self.word = []
                         self.word_row += 1
-                        
+                    
                     if event.key == pygame.K_BACKSPACE:
                         self.word = self.word[:-1]
                         self.word_matrix[self.word_row] = self.word
-            
+
             self.update_display()
             pygame.display.flip()
-
 
     def close(self):
         pygame.quit()
