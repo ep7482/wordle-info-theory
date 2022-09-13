@@ -81,6 +81,8 @@ class wordle_game:
         self.letter_locs = []
         self.word = []
         self.wordlist_matrix = []
+        self.init_rec_words = []
+        self.init_rec_entropy = []
         self.wordlist = []
         self.key_dict = {}
         self.guesses = []
@@ -91,6 +93,7 @@ class wordle_game:
 
         self.uncertainty = 13.66
         self.num_guesses = 12972
+        self.guess_num = 0
 
         self.top_guesses = ['TESTS' for i in range(5)]
         self.top_entropy = [0.00 for i in range(5)]
@@ -147,6 +150,13 @@ class wordle_game:
             self.wordlist_matrix = file.readlines()
             self.wordlist = [item.rstrip().upper() for item in self.wordlist_matrix]
             self.wordlist_matrix = [list(item.rstrip().upper()) for item in self.wordlist_matrix]
+
+        with open('data/first_guess_bit_list.txt') as file:
+            self.init_rec_words = file.readlines()
+            temp = [item.split(' ') for item in self.init_rec_words[:5]]
+
+        self.init_rec_words = [word[0] for word in temp]
+        self.init_rec_entropy = [float(entropy[1][:4]) for entropy in temp]
 
     def init_letter_locs(self):
         """
@@ -240,6 +250,10 @@ class wordle_game:
         self.add_text("Expected Information", (850, 190), color)
         self.add_text("Game History", (750, 385), color)
 
+        if self.guess_num == 0:
+            self.top_guesses = self.init_rec_words
+            self.top_entropy = self.init_rec_entropy
+
         for i in range(len(self.top_guesses)):
             word = self.top_guesses[i]
             entropy = str(self.top_entropy[i])
@@ -263,7 +277,7 @@ class wordle_game:
         self.init_wordlist_matrix()
         self.init_letter_locs()
         self.init_keyboard()
-        # self.word_of_day = list(random.choice(self.wordlist))
+        self.word_of_day = list(random.choice(self.wordlist))
         self.word_of_day = "ABYSS"
 
         sol = ''.join(self.word_of_day)
@@ -274,13 +288,10 @@ class wordle_game:
             self.screen.fill((18, 18, 19))
             self.current_screen()
 
-            
             wordle_image = pygame.image.load(r'wordleimage.png')
             w, h = wordle_image.get_size()
             wordle_image = pygame.transform.scale(wordle_image, (w//3, h//3))
             self.screen.blit(wordle_image, (220, 8))
-
-            
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -292,7 +303,7 @@ class wordle_game:
                         self.word.append(event.unicode.upper())
                         self.word_matrix[self.word_row] = self.word
                         
-                    if len(self.word) == 5 and self.word in self.wordlist_matrix and event.key == pygame.K_RETURN:
+                    if len(self.word) == 5 and self.word in self.wordlist_matrix and event.key == pygame.K_RETURN and ''.join(self.word) in self.guess_words:
 
                         self.current_guess = ''.join(self.word)
                         word_space = bot.word_space(self.current_guess, sol, self.guess_words)
@@ -303,7 +314,9 @@ class wordle_game:
                         
                         word_pattern = bot.compare_words(self.current_guess, sol)[1]
 
-                        
+                        entropy = bot.entropy_cal(self.guess_words, self.wordle_words)
+                        self.top_guesses = [top[0] for top in bot.top_word_guess(entropy, 5)]
+                        self.top_entropy = [round(top[1], 2) for top in bot.top_word_guess(entropy, 5)]                    
 
                         for l in range(5):
                             #letter in same position
@@ -327,6 +340,8 @@ class wordle_game:
 
                         self.word = []
                         self.word_row += 1
+                        self.guess_num += 1
+                        print(self.guess_num)
                     
                     if event.key == pygame.K_BACKSPACE:
                         self.word = self.word[:-1]

@@ -47,7 +47,8 @@ def top_word_guess(entropy_dict, num_display):
     return [(e, entropy_dict[e]) for e in entropy_dict][:num_display]
 
 def entropy_progress(count, words):
-    if count % int(len(words) / 100) == 0:
+    # print(f'Count {count} Length Words: {len(words)}')
+    if count % float(len(words) / 100) == 0.0:
         print("Entropy Calculation Completion: ", round((100 * count) / (len(words))), "%", end='\r')
 
 def word_space(guess, sol, guess_space):
@@ -103,3 +104,27 @@ def entropy_cal(sol_words, guess_words):
     entropy_dict = dict(sorted(entropy_dict.items(), key = lambda item : item[1], reverse =True))
 
     return entropy_dict
+
+# with open('data/wordlist.txt') as file:
+#     wordle_words = file.readlines()
+#     wordle_words = [item.rstrip().upper() for item in wordle_words]
+
+# with open('data/guess_wordlelist.txt') as file:
+#     guess_words = file.readlines()
+#     guess_words = [item.rstrip().upper() for item in guess_words[1:]]
+
+
+# words = word_space("SLATE","ABYSS", guess_words)
+# entropy = entropy_cal(wordle_words, words)
+# for top in top_word_guess(entropy, 10):
+#     print(top)
+
+# new_words = word_space("RAINS", "ABYSS", words)
+# entropy = entropy_cal(guess_words, new_words)
+# for top in top_word_guess(entropy, 10):
+#     print(top)
+
+# newer_words = word_space("KOMBU", "ABYSS", new_words)
+# entropy = entropy_cal(guess_words, newer_words)
+# for top in top_word_guess(entropy, 10):
+#     print(top)
