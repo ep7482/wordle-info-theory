@@ -1,6 +1,6 @@
 import pygame
 import random
-import wordle_bot as bot
+import src.wordle_bot as bot
 import numpy as np
 
 class wordle_game:
@@ -90,6 +90,7 @@ class wordle_game:
 
         self.guess_words = guess_words
         self.wordle_words= wordle_words
+        self.word_space = guess_words
 
         self.uncertainty = 13.66
         self.num_guesses = 12972
@@ -288,7 +289,7 @@ class wordle_game:
             self.screen.fill((18, 18, 19))
             self.current_screen()
 
-            wordle_image = pygame.image.load(r'wordleimage.png')
+            wordle_image = pygame.image.load(r'images/wordleimage.png')
             w, h = wordle_image.get_size()
             wordle_image = pygame.transform.scale(wordle_image, (w//3, h//3))
             self.screen.blit(wordle_image, (220, 8))
@@ -306,17 +307,21 @@ class wordle_game:
                     if len(self.word) == 5 and self.word in self.wordlist_matrix and event.key == pygame.K_RETURN and ''.join(self.word) in self.guess_words:
 
                         self.current_guess = ''.join(self.word)
-                        word_space = bot.word_space(self.current_guess, sol, self.guess_words)
-                        self.guess_words = word_space
-                        self.num_guesses = len(word_space)
+                        word_pattern = bot.comparison(self.current_guess, sol)
+                        word_space = bot.word_space(self.current_guess, word_pattern, self.word_space)[0]
+
+                        entropy = bot.entropy_calc(self.guess_words, word_space)
+                        self.word_space = word_space
+
+                        self.top_guesses = [top[0] for top in bot.top_word_guess(entropy, 5)]
+                        self.top_entropy = [round(top[1], 2) for top in bot.top_word_guess(entropy, 5)]
+
                         self.history_entropy[self.word_matrix.index(self.word)] = round(self.uncertainty - np.log2(self.num_guesses), 2)
                         self.uncertainty = round(np.log2(self.num_guesses), 2)
                         
-                        word_pattern = bot.compare_words(self.current_guess, sol)[1]
+                        self.num_guesses = len(self.word_space)
 
-                        entropy = bot.entropy_cal(self.guess_words, self.wordle_words)
-                        self.top_guesses = [top[0] for top in bot.top_word_guess(entropy, 5)]
-                        self.top_entropy = [round(top[1], 2) for top in bot.top_word_guess(entropy, 5)]                    
+                                            
 
                         for l in range(5):
                             #letter in same position
