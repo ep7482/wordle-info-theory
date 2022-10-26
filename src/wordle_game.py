@@ -308,11 +308,12 @@ class wordle_game:
 
                         self.current_guess = ''.join(self.word)
                         word_pattern = bot.comparison(self.current_guess, sol)
-                        word_space = bot.word_space(self.current_guess, word_pattern, self.word_space)[0]
+                        word_space = bot.word_space(self.current_guess, word_pattern, self.word_space)
+                        print(word_pattern, len(word_space))
 
                         entropy = bot.entropy_calc(self.guess_words, word_space)
-                        self.word_space = word_space
 
+                        self.word_space = word_space
                         self.top_guesses = [top[0] for top in bot.top_word_guess(entropy, 5)]
                         self.top_entropy = [round(top[1], 2) for top in bot.top_word_guess(entropy, 5)]
 
@@ -346,7 +347,6 @@ class wordle_game:
                         self.word = []
                         self.word_row += 1
                         self.guess_num += 1
-                        print(self.guess_num)
                     
                     if event.key == pygame.K_BACKSPACE:
                         self.word = self.word[:-1]

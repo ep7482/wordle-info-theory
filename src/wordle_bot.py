@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import time
 import csv
 import sys
-
+import json
+from ast import literal_eval
 
 color_points = [0, 1, 2]
 combination_list = list(itertools.product(color_points, repeat = 5))
@@ -51,35 +52,43 @@ def top_word_guess(entropy_dict, num_display):
     return [(e, entropy_dict[e]) for e in entropy_dict][:num_display]
 
 
-def word_space(guess, guess_pattern, guess_words):
-    output_word_space = []
-    guess_zeros = [guess[loc] for loc, val in enumerate(list(guess_pattern)) if val == 0]
-    guess_ones = [guess[loc] for loc in range(len(guess_pattern)) if guess_pattern[loc]  == 1]
-    guess_ones_loc = [loc for loc in range(len(guess_pattern)) if guess_pattern[loc]  == 1]
-    guess_twos_list = [(guess[loc], loc) for loc, val in enumerate(list(guess_pattern)) if val == 2]
 
-    guess_words = [word for word in guess_words if all(substring not in word for substring in guess_zeros)]
-    if guess_pattern == (0,0,0,0,0):
-        return guess_words, len(guess_words)
+# def word_space(guess, guess_pattern, guess_words):
+#     output_word_space = []
+#     guess_zeros = [guess[loc] for loc, val in enumerate(list(guess_pattern)) if val == 0]
+#     guess_ones = [guess[loc] for loc in range(len(guess_pattern)) if guess_pattern[loc]  == 1]
+#     guess_ones_loc = [loc for loc in range(len(guess_pattern)) if guess_pattern[loc]  == 1]
+#     guess_twos_list = [(guess[loc], loc) for loc, val in enumerate(list(guess_pattern)) if val == 2]
 
-    for word in guess_words:
-        twos = 0
-        ones = 0
-        if all(substring in word for substring in guess_ones):
-            for value in guess_twos_list:
-                letter, loc= value[0], value[1]
-                if word[loc] == letter:
-                    twos += 1
-            for char in guess_ones:
-                if word.index(char) != guess.index(char):
-                    ones += 1
-        if (ones == len(guess_ones) and 0 not in[ord(word[j]) - ord(guess[j]) for j in guess_ones_loc]
-            and twos == len(guess_twos_list)):
-            output_word_space.append(word)
+#     # print(guess_zeros)
+#     guess_words = [word for word in guess_words if all(substring not in word for substring in guess_zeros)]
+#     if guess_pattern == (0,0,0,0,0):
+#         return guess_words
+#     guess_words.sort()
+#     # print(guess_words)
+#     next_word_space = []
+#     for word in guess_words:
+#         twos = 0
+#         for value in guess_twos_list:
+#             letter, loc= value[0], value[1]
+#             if word[loc] == letter:
+#                 twos += 1
+#         if twos == len(guess_twos_list):
+#             next_word_space.append(word)
 
-                
-    output_word_space.sort()
-    return output_word_space, len(output_word_space)
+#     for word in next_word_space:
+#         ones = 0
+#         if all(substring in word for substring in guess_ones):
+#             for char in guess_ones:
+#                 if word.index(char) != guess.index(char):
+#                     ones += 1
+#         if (ones == len(guess_ones) and 0 not in[ord(word[j]) - ord(guess[j]) for j in guess_ones_loc]):
+#             output_word_space.append(word)
+
+    
+#     # print("HERE", output_word_space)
+#     output_word_space.sort()
+#     return output_word_space
 
 
 def information_bits(prob):
@@ -90,38 +99,61 @@ def information_bits(prob):
 def probability(count, word_space_len):
     return count / word_space_len
 
+def word_space(guess, guess_pattern, guess_space):
+    new_space = []
+    ones = sum([1 for val in guess_pattern if val == 1])
+    twos = sum([1 for val in guess_pattern if val == 2])
 
-def entropy_calc(guess_words, guess_space):
-    # if len(guess_space) == 2:
-    #     return {guess_space[0]: 1.0, guess_space[1]: 1.0}
+    guess_dict = {0:{}, 1:{}, 2:{}}
+    for i in range(len(guess_pattern)):
+        pattern_val = guess_pattern[i]
+        guess_dict[pattern_val][guess[i]] = i
 
-    entropy_dict = {}
-    for guess in guess_words:
-        count = dict.fromkeys(combination_list, 0)
-        for word in  guess_space:
-            pattern = comparison(guess, word)
-            count[pattern] += 1
+    
 
+    for word in guess_space:
+        word_pattern = comparison(word, guess)
+        g_okay, y_okay, o_okay, gg_okay = 0, 0, 0, 0
 
-        info_bits_list = [information_bits(probability(count[c], len(guess_space))) for c in count]
-        prob_list = [probability(count[c], len(guess_space)) for c in count]
-        entropy_dict[guess] = sum([prob_list[i]*info_bits_list[i] for i in range(len(count))])
+        for g in range(len(guess)):
+            if (guess[g] == word[g] and guess_pattern[g] == 2):
+                gg_okay += 1
+            for w in range(len(word)):
+                # if (guess_pattern[g] == 0 and guess[g] == word[w] and word_pattern[w] > 0):
+                #     g_okay += 1                    
+                if (guess_pattern[g] == 1 and guess[g] == word[w] and word_pattern[w] > 0 and g != w):
+                    y_okay += 1
+                if (g == w and guess[g] == word[w] and guess_pattern[g] == 1):
+                    o_okay += 1
+                
+                   
+        if y_okay == ones and o_okay == 0 and gg_okay == twos and all(substring not in word for substring in guess_dict[0].keys()):
+            new_space.append(word)
+    
+    new_space.sort()
+    return new_space
 
-        print(f'Percent: {100 * (guess_words.index(guess) / len(guess_words))}', end='\r')
+# solution = "ABYSS"
+# guess = "TARES"
+# pattern = comparison(guess, solution)
+# guess_space1 = word_space('TRACK', (0,0,0,0,0), guess_words)
+# guess_space1 = word_space('TREES', (0,0,0,0,0), guess_space1)
+# guess_space1 = word_space('YOUNG', (1,2,0,0,1), guess_space1)
+# guess_space1 = word_space('DODGY', (0,2,0,2,2), guess_space1)
 
-    print('\n')
-    entropy_dict = dict(sorted(entropy_dict.items(), key = lambda item : item[1], reverse =True))
-
-    return entropy_dict
-
-
-# guess_spaceOne, guess_spaceOneLen = word_space("SLATE", (1,0,1,0,0), guess_words)
+# print(len(guess_space1))
 # e = entropy_calc(guess_words, guess_spaceOne)
 # for val in top_word_guess(e, 10):
 #     print(val)
 # print('\n')
 
-# guess_spaceTwo, guess_spaceTwoLen = word_space("RAINS", (0,1,0,0,2), guess_spaceOne)
+# guess2 = "ALAMO"
+# pattern2 = comparison(guess2, solution)
+# guess_space2 = word_space(guess2, pattern2, guess_words)
+# print(pattern2, guess_space2)
+# nextSpace = word_space("A")
+
+# guess_spaceTwo = word_space("RAINS", (0,1,0,0,2), guess_spaceOne)
 # e = entropy_calc(guess_words, guess_spaceTwo)
 # for val in top_word_guess(e, 10):
 #     print(val)
@@ -133,46 +165,103 @@ def entropy_calc(guess_words, guess_space):
 # for val in top_word_guess(e, 10):
 #     print(val)
 
-def match_matrix(guess_words):
-    # output_mat = sps.dok_matrix((len(guess_words), len(combination_list)), dtype=np.uint8)
-    # for x in range(len(guess_words[:100])):
-    #     for y in range(len(guess_words)):
-    #         pattern = comparison(guess_words[x], guess_words[y])
-    #         output_mat[x, combination_list.index(pattern)] += 1
-    #     print(f'Percent: {100 * (x / len(guess_words[:100]))}', end='\r')
-    # print('\n')
-    output_mat = collections.defaultdict(dict)
-    for x in range(len(guess_words[:100])):
-        for y in range(len(guess_words)):
+def init_match_matrix(guess_words, combination_list):
+    if os.path.exists('test.txt'):
+        out_dict = {}
+        with open('test.txt') as file:
+            for line in file:
+                word = line[:5]
+                word_array = literal_eval(line[6:])
+                out_dict[word] = word_array
+        return out_dict
+    else:
+        with open('test.txt', 'w') as file:
+            for x in range(len(guess_words)):
+                temp_list = [0 for i in range(243)]
+                for y in range(len(guess_words)):
+                    pattern = comparison(guess_words[x], guess_words[y])
+                    index = combination_list.index(pattern)
+                    temp_list[index] += 1
+                print(f'Percent: {100 * (x / len(guess_words))}', end='\r')
+                file.write(guess_words[x] + ' ' + json.dumps(temp_list))
+                file.write('\n')
+    return init_match_matrix(guess_words, combination_list)
+
+
+def match_matrix(guess_space, combination_list):
+    out_dict = dict.fromkeys(guess_space, None)
+    for x in range(len(guess_space)):
+        temp_list = [0 for i in range(243)]
+        for y in range(len(guess_space)):
             pattern = comparison(guess_words[x], guess_words[y])
-            if len(output_mat[x][combination_list.index(pattern)]) == 0:
-                output_mat[x][combination_list.index(pattern)] = 0
-            else:
-                output_mat[x][combination_list.index(pattern)] += 1
-        print(f'Percent: {100 * (x / len(guess_words))}', end='\r')
+            index = combination_list.index(pattern)
+            temp_list[index] += 1
+        out_dict[guess_space[x]] = temp_list
+    return out_dict
+
+# guess_space1 = word_space('SLATE', (1,0,1,0,0), guess_words)
+# t0 = time.time()
+# test_mat = match_matrix(guess_space1, combination_list)
+# print(test_mat)
+# t1 = time.time()
+# print(t1-t0)
+
+def entropy_calc(guess_words, guess_space):
+    # if len(guess_space) == 2:
+    #     return {guess_space[0]: 1.0, guess_space[1]: 1.0}
+
+    entropy_dict = {}
+    if len(guess_space) == 12972:
+        match_mat = init_match_matrix(guess_space, combination_list)
+    else:
+        match_mat = match_matrix(guess_space, combination_list)
+
+    for guess in guess_words:
+        prob_list = [count / len(guess_space) for count in match_mat[guess]]
+        info_bits_list = [information_bits(prob) for prob in prob_list]
+        entropy_dict[guess] = sum([prob_list[i]*info_bits_list[i] for i in range(len(prob_list))])
+
+        print(f'Percent: {100 * (guess_space.index(guess) / len(guess_space))}', end='\r')
+
     print('\n')
+    entropy_dict = dict(sorted(entropy_dict.items(), key = lambda item : item[1], reverse =True))
 
-    fields = ["Guess"] + combination_list
-    with open("match_dict.csv", "w", newline='') as f:
-        w = csv.DictWriter(f, fields)
-        w.writeheader()
-        count = 0
-        for k in output_mat:
-            w.writerow({field: output_mat[k].get(field) or k for field in fields})
-            count += 1
-            print(count)
+    return entropy_dict
 
-    return output_mat
-
+# entropy_calc(guess_words, guess_words)
+true_word = "ABYSS"
+pattern = comparison('SLATE', true_word)
+guess_space1 = word_space('SLATE', pattern, guess_words)
 t0 = time.time()
-test_mat = match_matrix(guess_words)
-print(test_mat)
+e = entropy_calc(guess_words, guess_space1)
 t1 = time.time()
 print(t1-t0)
+# for val in top_word_guess(e, 10):
+#     print(val)
+# print('\n')
+guess = 'BASIJ'
+pattern = comparison(guess, true_word)
+guess_space2 = word_space(guess, pattern, guess_space1)
+t0 = time.time()
+e = entropy_calc(guess_words, guess_space2)
+print(e, guess_space2)
+t1 = time.time()
+print(t1-t0)
+for val in top_word_guess(e, 10):
+    print(val)
+print('\n')
 
-
-
-
+guess = 'ABBAS'
+pattern = comparison(guess, true_word)
+guess_space3 = word_space(guess, pattern, guess_space2)
+print(guess_space3)
+t0 = time.time()
+e = entropy_calc(guess_words, guess_space3)
+t1 = time.time()
+print(t1-t0)
+for val in top_word_guess(e, 10):
+    print(val)
+print('\n')
 
 # def matches_matrix(guess_words):
 #     output_mat = np.zeros((len(guess_words), len(combination_list)), dtype=np.uint8)
@@ -214,6 +303,28 @@ def calculate_entropy_1(guess_space, other_space):
 
 
     entropy_dict = dict(sorted(entropy_dict.items(), key = lambda item : item[1], reverse =True))
+    return entropy_dict
+
+def entropy_calc(guess_words, guess_space):
+    # if len(guess_space) == 2:
+    #     return {guess_space[0]: 1.0, guess_space[1]: 1.0}
+
+    entropy_dict = {}
+    for guess in guess_words:
+        count = dict.fromkeys(combination_list, 0)
+        for word in  guess_space:
+            pattern = comparison(guess, word)
+            count[pattern] += 1
+
+        prob_list = [count[c] / len(guess_space) for c in count]
+        info_bits_list = [information_bits(prob) for prob in prob_list]
+        entropy_dict[guess] = sum([prob_list[i]*info_bits_list[i] for i in range(len(count))])
+
+        print(f'Percent: {100 * (guess_words.index(guess) / len(guess_words))}', end='\r')
+
+    print('\n')
+    entropy_dict = dict(sorted(entropy_dict.items(), key = lambda item : item[1], reverse =True))
+
     return entropy_dict
 
 def word_space2(guess, guess_space, guess_pattern):
