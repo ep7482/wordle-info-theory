@@ -1,18 +1,18 @@
+"""
+
+This file contains an incomplete wordle bot. Need more RAM to implement large
+data structure.
+
+"""
+
 from re import I, L
-from wsgiref.util import guess_scheme
 import numpy as np
 import itertools
 import collections
 import os.path
-from scipy.stats import entropy
-import scipy.sparse as sps
-import matplotlib.pyplot as plt
-import time
-import csv
-import sys
 import json
 from ast import literal_eval
-from tqdm import tqdm 
+import pickle
 
 color_points = [0, 1, 2]
 combination_list = list(itertools.product(color_points, repeat = 5))
@@ -256,16 +256,74 @@ def match_matrix(guess_space, guess_words, combination_list):
 # t1 = time.time()
 # print(t1-t0)
 
-t0 = time.time()
-temp_dict = {x : set() for x in range(len(guess_words))}
-for word in guess_words:
-    temp_set = set()
-    for word2 in guess_words:
-        temp_set.add(comparison(word, word2))
-    temp_dict[guess_words.index(word)] = temp_set
-    print(f'Percent: {100 * (guess_words.index(word) / len(guess_words))}', end='\r')
-t1 = time.time()
-print(t1 - t0)
+def word_pattern_dict(guess_words, num):
+    if os.path.exists('data/word_pattern_dict.p') == False:
+        output_dict = {i : {j : 0 for j in range(len(guess_words))} for i in range(len(guess_words))}
+        for x in range(len(guess_words)):
+            # inner_dict = {j : {} for j in range(len(guess_words))}
+            # inner_dict = set()
+            for y in range(len(guess_words)):
+                output_dict.add(comparison(guess_words[x], guess_words[y]))
+            # output_dict[x] = inner_dict
+            print(f'Percent: {100 * (x/ len(guess_words))}', end='\r')
+        pickle.dump(output_dict, open(f'data/word_pattern_dict_{num}.p', 'wb+'))
+    return pickle.load(open(f'data/word_pattern_dict_{num}.p', 'rb'))
+
+# t0 = time.time()
+# temp_dict = {x : set() for x in range(len(guess_words))}
+# for word in guess_words:
+#     temp_set = set()
+#     for word2 in guess_words:
+#         temp_set.add(comparison(word, word2))
+#     temp_dict[guess_words.index(word)] = temp_set
+#     print(f'Percent: {100 * (guess_words.index(word) / len(guess_words))}', end='\r')
+# t1 = time.time()
+# print(t1 - t0)
+# t0 = time.time()
+# pattern_dict = word_pattern_dict(guess_words)
+# print(pattern_dict[0])
+# t1 = time.time()
+# print(t1-t0)
+# output_dict = {i : {j : np.uint8(0) for j in range(len(guess_words))} for i in range(len(guess_words))}
+# output_dict = [[0 for j in range(len(guess_words))] for i in range(len(guess_words))]
+# output_dict = shelve.open('data/test_shelve.db')
+
+
+ordered_guess_words = sorted(guess_words)
+# letters = list(map(chr, range(ord('a'), ord('z')+1)))
+for letter_ord in range(65, 91):
+    output_dict = collections.defaultdict()
+    for x in ordered_guess_words:
+        if ord(x[0]) == letter_ord:
+            for y in ordered_guess_words:
+                output_dict[f'{x}_{y}'] = comparison(x, y)
+        print(x)
+    pickle.dump(output_dict, open(f'data/pickle/word_pattern_dict_{x[0]}.p', 'wb+'))
+    print(f'Percent: {letter_ord}', end='\r')
+
+
+print(ord('A') - 65, ord('A'), ord('Z'))
+
+
+
+# for i in range(100):
+
+# test_set = set()
+# test_set.add('WORD1')
+# test_set.add('WORD2')
+# test_set.add('WORD3')
+# test_set.add('WORD4')
+# test_set.add('WORD5')
+# print(test_set)
+# test_set_keys = {i for i in range(5)}
+
+# test_dict = dict(zip(test_set_keys, test_set))
+# print(test_dict)
+
+
+
+
+
 
 def entropy_calc(guess_words, guess_space, match_mat):
     # if len(guess_space) == 2:
