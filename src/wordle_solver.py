@@ -1,4 +1,3 @@
-print('test')
 import numpy as np
 import matplotlib.pyplot as plt
 import collections
@@ -7,6 +6,8 @@ import time
 import os
 import pickle
 from scipy.stats import entropy
+from ast import literal_eval
+
 
 with open('data/guess_wordlelist.txt') as file:
     guess_words = file.readlines()
@@ -68,13 +69,12 @@ def probability(count, word_space_len):
     return count / word_space_len
 
 
-def entropy_calc(pattern_matrix, guess_space=guess_words):
+def entropy_calc(pattern_matrix, guess_space=guess_words, progress=False):
     entropy_dict = {}
     for guess in guess_space:
         prob_list = np.fromiter(word_distribution(pattern_matrix, guess, guess_space).values(), dtype=float) / len(pattern_matrix[0])
         entropy_dict[guess] = entropy(prob_list, base=2)
-        print(f'Percent: {100 * (guess_space.index(guess) / len(guess_space))}', end='\r')
-    print('\n')
+        if progress: print(f'Percent: {100 * (guess_space.index(guess) / len(guess_space))}', end='\r')
     entropy_dict = dict(sorted(entropy_dict.items(), key = lambda item : item[1], reverse =True))
     return entropy_dict
 
@@ -97,50 +97,52 @@ def plot_distribution(pattern_matrix, word):
 
 
 def word_space(guess, true, pattern_matrix, guess_space):
-    values = pattern_matrix[guess_space.index(guess)]
+    values = pattern_matrix[guess_space.index(guess)] 
     pattern_index = combination_dict[comparison(guess, true)]
     indices = np.where(values == pattern_index)[0]
     new_word_space = [guess_space[i] for i in list(indices)]
-    return new_word_space, indices
+    return new_word_space, indices 
 
 def new_pattern_matrix(guess, true, pattern_matrix, guess_space=guess_words):
     word_space_indices = word_space(guess, true, pattern_matrix, guess_space)[1]
     output_matrix = pattern_matrix[:,word_space_indices][word_space_indices]
     return output_matrix, word_space_indices
 
-pattern_matrix = init_matrix()
-# entropy_dict = entropy_calc(pattern_matrix)
-# print(top_word_guess(entropy_dict, 10))
+def sim():
+    wordle_dist = []
+    for true in wordle_words:
+        next_guess = "TARES"
+        new_matrix = init_matrix()
+        guess_space = guess_words
+        counter = 1
+        
+        while next_guess != true:
+            newest_matrix = new_pattern_matrix(next_guess, true, new_matrix, guess_space)[0]
+            guess_space = word_space(next_guess, true, new_matrix, guess_space)[0]
+            entropy_dict = entropy_calc(newest_matrix, guess_space)
+            next_guess = top_word_guess(entropy_dict, 1)[0][0]
+            new_matrix = newest_matrix
+            counter += 1
+        wordle_dist.append(counter)
+        print(f'Percent: {100 * (wordle_words.index(true) / len(wordle_words))}', end='\r')
+    return wordle_dist
 
+if os.path.exists("data/HARDmode_sim_results.txt") == False:
+    sim_vals = sim()   
+    with open("data/HARDmode_sim_results.txt", "w") as file:
+        file.write(str(sim_vals))
+else:
+    text_file = open("data/HARDmode_sim_results.txt", "r")
+    sim_vals = literal_eval(text_file.read())
 
-true = "ABYSS"
-new_matrix, word_indices = new_pattern_matrix("SLATE", true, pattern_matrix)
-guess_space = word_space("SLATE", true, pattern_matrix, guess_words)[0]
+def sim_hist(sim_vals):
+    plt.figure(figsize=(10, 8))
+    plt.hist(sim_vals)
+    plt.title("Wordle HARD mode tries for 2315 games")
+    plt.ylabel("Number of games played")
+    plt.xlabel(f'Average number of tries - {sum(sim_vals) / len(sim_vals)}')
+    plt.savefig(f'images/HARDmode_hist.png')
+    plt.show()
 
-new_matrix, word_indices = new_pattern_matrix("RAINS", true, new_matrix)
-guess_space = word_space("RAINS", true, new_matrix, guess_space)[0]
-
-# new_matrix, word_indices = new_pattern_matrix("KOMBU", true, new_matrix)
-
-
-
-t0 = time.time()
-entropy_dict = entropy_calc(new_matrix, guess_space)
-t1 = time.time()
-print(top_word_guess(entropy_dict, 10))
-print(t1-t0)
-
-
-t0 = time.time()
-print(word_space("SLATE", true, pattern_matrix))
-t1 = time.time()
-print(t1 - t0)
-
-
-
-# sorted_counter_by_key = dict(sorted(counter.items(), key = lambda item: item[0]))
-# for i in range(243):
-#     if i not in sorted_counter_by_key.keys():
-#         sorted_counter_by_key[i] = 0;
 
 

@@ -1,7 +1,6 @@
 """
 
-This file contains an incomplete wordle bot. Need more RAM to implement large
-data structure.
+This is no longer in use. The actual solver can be located in wordle_solver.py
 
 """
 
