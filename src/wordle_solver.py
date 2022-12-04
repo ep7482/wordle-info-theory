@@ -103,46 +103,81 @@ def word_space(guess, true, pattern_matrix, guess_space):
     new_word_space = [guess_space[i] for i in list(indices)]
     return new_word_space, indices 
 
-def new_pattern_matrix(guess, true, pattern_matrix, guess_space=guess_words):
+def new_pattern_matrix(guess, true, pattern_matrix, mode, guess_space=guess_words):
     word_space_indices = word_space(guess, true, pattern_matrix, guess_space)[1]
-    output_matrix = pattern_matrix[:,word_space_indices][word_space_indices]
+    if mode == "HARD":
+        output_matrix = pattern_matrix[:,word_space_indices][word_space_indices]
+    elif mode == "EASY":
+        output_matrix = pattern_matrix[:,word_space_indices]
+    else:
+        print("Choose mode: HARD or EASY")
     return output_matrix, word_space_indices
 
-def sim():
+
+def backtrack_indices(index_list):
+    val = 0
+    for indices in reversed(index_list):
+        val = indices[val]
+    return guess_words[val]
+
+
+def sim(mode, num_sims=len(wordle_words)):
     wordle_dist = []
-    for true in wordle_words:
+    for true in wordle_words[:num_sims]:
         next_guess = "TARES"
         new_matrix = init_matrix()
         guess_space = guess_words
+        indices_list = []
         counter = 1
         
         while next_guess != true:
-            newest_matrix = new_pattern_matrix(next_guess, true, new_matrix, guess_space)[0]
-            guess_space = word_space(next_guess, true, new_matrix, guess_space)[0]
-            entropy_dict = entropy_calc(newest_matrix, guess_space)
+            if mode == "HARD":
+                newest_matrix = new_pattern_matrix(next_guess, true, new_matrix, mode, guess_space)[0]
+                guess_space = word_space(next_guess, true, new_matrix, guess_space)[0]
+                entropy_dict = entropy_calc(newest_matrix, guess_space)
+            elif mode == "EASY":
+                newest_matrix, ind = new_pattern_matrix(next_guess, true, new_matrix, mode, guess_words)
+                indices_list.append(ind)
+                entropy_dict = entropy_calc(newest_matrix)
+                if backtrack_indices(indices_list) == true:
+                    counter += 1
+                    break
+            else:
+                print("Choose mode: HARD or EASY")
             next_guess = top_word_guess(entropy_dict, 1)[0][0]
             new_matrix = newest_matrix
             counter += 1
         wordle_dist.append(counter)
-        print(f'Percent: {100 * (wordle_words.index(true) / len(wordle_words))}', end='\r')
+        print(wordle_words.index(true))
+        # print(f'Percent: {100 * (wordle_words.index(true) / len(wordle_words))}', end='\r')
+
     return wordle_dist
 
-if os.path.exists("data/HARDmode_sim_results.txt") == False:
-    sim_vals = sim()   
-    with open("data/HARDmode_sim_results.txt", "w") as file:
-        file.write(str(sim_vals))
-else:
-    text_file = open("data/HARDmode_sim_results.txt", "r")
-    sim_vals = literal_eval(text_file.read())
 
-def sim_hist(sim_vals):
+def sim_hist(mode):
+    text_file = open(f"data/{mode}mode_sim_results.txt", "r")
+    sim_vals = literal_eval(text_file.read())
     plt.figure(figsize=(10, 8))
     plt.hist(sim_vals)
-    plt.title("Wordle HARD mode tries for 2315 games")
+    plt.title(f"Wordle {mode} mode tries for 2315 games")
     plt.ylabel("Number of games played")
     plt.xlabel(f'Average number of tries - {sum(sim_vals) / len(sim_vals)}')
-    plt.savefig(f'images/HARDmode_hist.png')
+    plt.savefig(f'images/{mode}mode_hist.png')
     plt.show()
 
 
+def sim_values(mode):
+    if os.path.exists(f"data/{mode}mode_sim_results.txt") == False:
+        sim_vals = sim(mode)   
+        with open(f"data/{mode}mode_sim_results.txt", "w") as file:
+            file.write(str(sim_vals))
+    else:
+        text_file = open(f"data/{mode}mode_sim_results.txt", "r")
+        sim_vals = literal_eval(text_file.read())
+    return sim_vals
+    
 
+
+
+
+    
