@@ -1,6 +1,6 @@
 import pygame
 import random
-import src.wordle_bot as bot
+import src.wordle_solver as bot
 import numpy as np
 
 class wordle_game:
@@ -54,10 +54,11 @@ class wordle_game:
 
     letters = [chr(i) for i in range(65, 91)]
 
-    box_font = pygame.font.SysFont('arial', 24)
-    key_font = pygame.font.SysFont('arial', 26)
-    enter_size = pygame.font.SysFont('arial', 20)
-    del_size = pygame.font.SysFont('arial', 20)
+    box_font = pygame.font.SysFont('arial', 18, bold=True)
+    key_font = pygame.font.SysFont('arial', 20, bold=True)
+    enter_size = pygame.font.SysFont('arial', 14, bold=True)
+    del_size = pygame.font.SysFont('arial', 14, bold=True)
+    # print(pygame.font.get_fonts())
 
     LIGHT_GRAY = (134, 136, 138)
     GREEN = (77, 149, 70)
@@ -70,7 +71,7 @@ class wordle_game:
                     ['ENTER'],['DELETE']]
     
     
-    def __init__(self, guess_words, wordle_words, Terminal = False):
+    def __init__(self, guess_words, wordle_words, mode="HARD", Terminal = False):
         """
         Parameters
         ----------
@@ -87,14 +88,19 @@ class wordle_game:
         self.key_dict = {}
         self.guesses = []
         self.current_guess = ''
+        self.indices_list = []
 
+        self.mode = mode
         self.guess_words = guess_words
         self.wordle_words= wordle_words
         self.word_space = guess_words
+        self.new_matrix = bot.init_matrix()
+        self.guess_space = guess_words
 
         self.uncertainty = 13.66
         self.num_guesses = 12972
         self.guess_num = 0
+        self.next_guess = "TARES"
 
         self.top_guesses = ['TESTS' for i in range(5)]
         self.top_entropy = [0.00 for i in range(5)]
@@ -279,7 +285,7 @@ class wordle_game:
         self.init_letter_locs()
         self.init_keyboard()
         self.word_of_day = list(random.choice(self.wordlist))
-        self.word_of_day = "ABYSS"
+        # self.word_of_day = "ABYSS"
 
         sol = ''.join(self.word_of_day)
 
@@ -308,21 +314,31 @@ class wordle_game:
 
                         self.current_guess = ''.join(self.word)
                         word_pattern = bot.comparison(self.current_guess, sol)
-                        word_space = bot.word_space(self.current_guess, word_pattern, self.word_space)
-                        print(word_pattern, len(word_space))
 
-                        entropy = bot.entropy_calc(self.guess_words, word_space)
+                        if self.mode == "HARD":
+                            newest_matrix = bot.new_pattern_matrix(self.next_guess, sol, self.new_matrix, self.mode, self.guess_space)[0]
+                            self.guess_space = bot.word_space(self.next_guess, sol, self.new_matrix, self.guess_space)[0]
+                            entropy_dict = bot.entropy_calc(newest_matrix, self.guess_space)
+                        elif self.mode == "EASY":
+                            newest_matrix, ind = bot.new_pattern_matrix(self.next_guess, sol, self.new_matrix, self.mode, self.guess_words)
+                            self.indices_list.append(ind)
+                            entropy_dict = bot.entropy_calc(newest_matrix)
+                            print(self.indices_list)
+                            if bot.backtrack_indices(self.indices_list) == sol:
+                                break
+                        else:
+                            print("Choose mode: HARD or EASY")
+                        self.next_guess = bot.top_word_guess(entropy_dict, 1)[0][0]
+                        self.num_guesses = len(newest_matrix[0])
+                        self.new_matrix = newest_matrix
 
-                        self.word_space = word_space
-                        self.top_guesses = [top[0] for top in bot.top_word_guess(entropy, 5)]
-                        self.top_entropy = [round(top[1], 2) for top in bot.top_word_guess(entropy, 5)]
+                        self.top_guesses = [top[0] for top in bot.top_word_guess(entropy_dict, 5)]
+                        self.top_entropy = [round(top[1], 2) for top in bot.top_word_guess(entropy_dict, 5)]
 
                         self.history_entropy[self.word_matrix.index(self.word)] = round(self.uncertainty - np.log2(self.num_guesses), 2)
                         self.uncertainty = round(np.log2(self.num_guesses), 2)
-                        
-                        self.num_guesses = len(self.word_space)
 
-                                            
+                        print(len(self.guess_words))   
 
                         for l in range(5):
                             #letter in same position
