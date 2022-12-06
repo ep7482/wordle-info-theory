@@ -323,7 +323,6 @@ class wordle_game:
                             newest_matrix, ind = bot.new_pattern_matrix(self.next_guess, sol, self.new_matrix, self.mode, self.guess_words)
                             self.indices_list.append(ind)
                             entropy_dict = bot.entropy_calc(newest_matrix)
-                            print(self.indices_list)
                             if bot.backtrack_indices(self.indices_list) == sol:
                                 break
                         else:
@@ -338,7 +337,7 @@ class wordle_game:
                         self.history_entropy[self.word_matrix.index(self.word)] = round(self.uncertainty - np.log2(self.num_guesses), 2)
                         self.uncertainty = round(np.log2(self.num_guesses), 2)
 
-                        print(len(self.guess_words))   
+                        self.guess_words = self.guess_space  
 
                         for l in range(5):
                             #letter in same position
