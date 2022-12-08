@@ -2,47 +2,46 @@ from PIL import Image
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+import itertools
+from math import floor
 
-img = Image.open("images/test1.jpg")
-greyImg = Image.open("images/test1.jpg").convert('L')
 
-# a = np.asarray(img)
-# print(type(a))
-# print(type(a[0]))
 
-width, height = img.size
 
 GREEN = (77, 149, 70)
 YELLOW = (181, 159, 59)
 DARK_GRAY = (58, 58, 60)
 
+test_file = "images/test1.jpg"
 
-imgMatrix = []
+def image_mat(file, save=False):
+    img = Image.open(file)
+    greyImg = Image.open(file).convert('L')
+    width, height = img.size
+    imgMatrix = []
 
-for x in range(width):
-    temp = []
-    for y in range(height):
-        if greyImg.getpixel((x, y)) < int(255*0.4):
-            greyImg.putpixel((x, y), 0)
-            temp.append(0)
-            img.putpixel((x, y), DARK_GRAY)
-        elif greyImg.getpixel((x, y)) >= int(255*0.4) and greyImg.getpixel((x, y)) < int(255*0.6):
-            greyImg.putpixel((x, y), 128)
-            temp.append(1)
-            img.putpixel((x, y), GREEN)
-        else:
-            greyImg.putpixel((x, y), 255)
-            temp.append(2)
-            img.putpixel((x, y), YELLOW)
-    imgMatrix.append(temp)
+    for x in range(width):
+        temp = []
+        for y in range(height):
+            if greyImg.getpixel((x, y)) < int(255*0.4):
+                greyImg.putpixel((x, y), 0)
+                temp.append(0)
+                img.putpixel((x, y), DARK_GRAY)
+            elif greyImg.getpixel((x, y)) >= int(255*0.4) and greyImg.getpixel((x, y)) < int(255*0.6):
+                greyImg.putpixel((x, y), 128)
+                temp.append(1)
+                img.putpixel((x, y), GREEN)
+            else:
+                greyImg.putpixel((x, y), 255)
+                temp.append(2)
+                img.putpixel((x, y), YELLOW)
+        imgMatrix.append(temp)
 
-
-img.save("images/newColorImage.jpg")
-greyImg.save("images/greyOuputImage.jpg")
-
-print(width, height)
-
-imgMatrix = np.array(imgMatrix)
+    if save:
+        img.save("images/newColorImage.jpg")
+        greyImg.save("images/greyOuputImage.jpg")
+    imgMatrix = np.array(imgMatrix)
+    return imgMatrix
 
 def coarseImage(matrix, coarseVal):
     width, height = len(matrix), len(matrix[0])
@@ -53,7 +52,7 @@ def coarseImage(matrix, coarseVal):
     for x in range(newWidth):
         tempArray = []
         for y in range(newHeight):
-            matrixChunk = imgMatrix[x*coarseVal:(x+1)*coarseVal, y*coarseVal:(y+1)*coarseVal]
+            matrixChunk = matrix[x*coarseVal:(x+1)*coarseVal, y*coarseVal:(y+1)*coarseVal]
             
             colorVal = mostCommonVal(matrixChunk)
             if colorVal == 0:
@@ -85,26 +84,41 @@ cmap = matplotlib.colors.ListedColormap([RGBtoColormap(DARK_GRAY), RGBtoColormap
 bounds=[-0.25,0.25,1.25,2]
 norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
 
-coarseN = [[1, 3, 9],
-          [27, 64, 81]]
-
-def coarseFig(coarseN, rows, cols, save=False):
-    # coarseN = np.zeros((rows, cols))
-    
+def coarseFig(coarseN, rows, cols, image_matrix, save=False):
     fig, ax = plt.subplots(nrows=rows, ncols=cols)
 
     for i in range(2):
         for j in range(3):
-            newCoarseImage, newCoarseMatplot = coarseImage(imgMatrix, coarseN[i][j])
+            newCoarseImage, newCoarseMatplot = coarseImage(image_matrix, coarseN[i][j])
             
             newCoarseMatplot = np.flip(np.rot90(newCoarseMatplot, k=3), 1)
             xNum, yNum = len(newCoarseMatplot)//2, len(newCoarseMatplot[0])//2
+
             ax[i,j].imshow(newCoarseMatplot, cmap= cmap, norm=norm)
-            
-    plt.savefig(f'images/outputCoarseImage.png')
+    if save:
+        plt.savefig(f'images/outputCoarseImage.png')
     plt.show()
 
-coarseFig(coarseN, 2, 3, save=True)
+coarseN = [[1, 3, 9],
+          [27, 64, 81]]
+imgMatrix = image_mat(test_file)
+# coarseFig(coarseN, 2, 3,imgMatrix , save=True)
+newCoarseMatplot = coarseImage(imgMatrix, 1)[1]
+output_mat = np.flip(np.rot90(newCoarseMatplot, k=3), 1)
+
+
+imgRowNum = len(output_mat)
+imgColNum = len(output_mat[0])
+totalNumMats = 0
+
+if floor(imgRowNum/6) <= floor(imgColNum/5):
+    totalNumMats = floor(imgRowNum/6)
+else:
+    totalNumMats = floor(imgColNum/5)
+print(totalNumMats)
+newMat = output_mat[:totalNumMats*5, :totalNumMats*6]
+plt.imshow(newMat, cmap=cmap, norm=norm)
+plt.show()
 
 
 
