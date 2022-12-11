@@ -4,13 +4,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 from math import floor
-
+import wordle_solver as bot
+import time as time
+import random
 
 
 
 GREEN = (77, 149, 70)
 YELLOW = (181, 159, 59)
 DARK_GRAY = (58, 58, 60)
+
+color_points = [0, 1, 2]
+combination_list = list(itertools.product(color_points, repeat = 5))
 
 test_file = "images/test1.jpg"
 
@@ -95,7 +100,7 @@ def coarseFig(coarseN, rows, cols, image_matrix, save=False):
 
     for i in range(2):
         for j in range(3):
-            newCoarseImage, newCoarseMatplot = coarseImage(image_matrix, coarseN[i][j])
+            newCoarseMatplot = coarseImage(image_matrix, coarseN[i][j])[1]
             
             newCoarseMatplot = np.flip(np.rot90(newCoarseMatplot, k=3), 1)
             xNum, yNum = len(newCoarseMatplot)//2, len(newCoarseMatplot[0])//2
@@ -129,44 +134,90 @@ def divideImgPlot(image_matrix, pieces):
     plt.imshow(image_matrix, cmap=cmap, norm=norm)
     ax.set_yticks([i*6 for i in range(len(pieces))])
     ax.set_xticks([i*5 for i in range(len(pieces[0]))])
-    plt.grid(color="white", linestyle='-')
+    ax.xaxis.set_ticklabels([])
+    ax.yaxis.set_ticklabels([])
+    plt.grid(color="white", linestyle=':')
     plt.show()
 
 coarseN = [[1, 3, 9],
           [27, 64, 81]]
+
 imgMatrix = image_mat(test_file, lower_bound=0.4, middle_bound=0.7)
 # coarseFig(coarseN, 2, 3,imgMatrix , save=True)
 
-testMat, pieces = divideImg(imgMatrix, 3)
+# testMat, pieces = divideImg(imgMatrix, 3)
 
-divideImgPlot(testMat, pieces)
-
-
-# rows = len(pieces)
-# cols = len(pieces[0])
-# fig, ax = plt.subplots(nrows=rows, ncols=cols)
-# for i in range(rows):
-#     for j in range(cols):
-#         ax[i,j].set_xticks([])
-#         ax[i,j].set_yticks([])
-#         ax[i,j].imshow(pieces[i][j], cmap= cmap, norm=norm)
-# plt.show()
+# divideImgPlot(testMat, pieces)
 
 # 
 # other_file = "images/lava-flow.jpg"
 # mat = image_mat(other_file, 0.4, 0.6)
-# newCoarseMatplot = coarseImage(mat, 2)[1]
+# newCoarseMatplot = coarseImage(mat, 3)[1]
+# testMat, pieces = divideImg(newCoarseMatplot, 3)
+# divideImgPlot(testMat, pieces)
 
 
 # other_file = "images/wave.jpg"
 # mat = image_mat(other_file, 0.4, 0.7)
 # newCoarseMatplot = coarseImage(mat, 3)[1]
+# testMat, pieces = divideImg(newCoarseMatplot, 3)
+# divideImgPlot(testMat, pieces)
 
-# other_file = "images/Pug-dog.jpg"
-# mat = image_mat(other_file, 0.35, 0.5)
-# coarseImg = coarseImage(mat, 1)[1]
+
+other_file = "images/Pug-dog.jpg"
+mat = image_mat(other_file, 0.35, 0.5)
+coarseImg = coarseImage(mat, 3)[1]
+testMat, pieces = divideImg(mat, 3)
+# divideImgPlot(testMat, pieces)
+
+# for i in range(len(pieces)):
+#     for j in range(len(pieces[0])):
+#         print(pieces[i][j])
+
+piece = pieces[0][0]
+wordle_space = bot.wordle_words
+guess_space = bot.guess_words
+word_of_day = random.choice(wordle_space)
+print(word_of_day)
+
+
+print(piece)
+
+
+
+
+
+# print(piece[0])
+
+# ZERO =  np.array([0, 0, 0, 0, 0])
+# ONES = np.array([1, 1, 1, 1, 1])
+# TWOS = np.array([2, 2, 2, 2, 2])
+# print((piece[0] == ONES).all())
+
+
+
+# guess_words = []
+# if (piece[0] == ZERO).all():
+#     guess = "FUZZY"
+#     if bot.comparison(guess, word_of_day) == (0, 0, 0, 0, 0):
+#         guess_words.append(guess)
+
+
+# coarseFig([[1, 2, 3],[4, 5, 6]], 2, 3, coarseImg)
 # viewImage(coarseImg)
 
+# combo_dict = {i : set() for i in range(10000)}
+# for combo in combination_list:
+#     tot = 0
 
+#     for i, val in enumerate(combo):
+        # tot += val * ((i * i) + 1)
+        
+#         tot += val * ((i ** 3) + i**2 + 1) 
 
+#     combo_dict[tot].add(combo)
+
+# for key in combo_dict.keys():
+#     if len(combo_dict[key]) != 0:
+#         print(combo_dict[key])
 
